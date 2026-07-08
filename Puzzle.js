@@ -2,23 +2,19 @@ var rows = 3;
 var columns = 3;
 
 var currTile;
-var otherTile; // the tile being swapped with
+var otherTile;
 var turns = 0;
-
-var imgOrder; // We'll reinitialize this every time to allow resetting
+var imgOrder;
 
 window.onload = function() {
   createBoard();
-
-  // Add retry button listener
   document.getElementById("retryButton").addEventListener("click", resetGame);
 }
 
 function createBoard() {
   const board = document.getElementById("board");
-  board.innerHTML = ""; // Clear existing tiles
+  board.innerHTML = "";
 
-  // Reset tile order
   imgOrder = ["4", "2", "8", "5", "1", "6", "7", "9", "3"];
 
   for (let r = 0; r < rows; r++) {
@@ -27,7 +23,7 @@ function createBoard() {
       tile.id = r + "-" + c;
       tile.src = imgOrder.shift() + ".png";
 
-      // Add drag functionality
+      // Desktop drag events
       tile.addEventListener("dragstart", dragStart);
       tile.addEventListener("dragover", dragOver);
       tile.addEventListener("dragenter", dragEnter);
@@ -35,15 +31,17 @@ function createBoard() {
       tile.addEventListener("drop", dragDrop);
       tile.addEventListener("dragend", dragEnd);
 
+      // Mobile touch events (NEW)
+      tile.addEventListener("touchstart", touchStart, { passive: true });
+      tile.addEventListener("touchmove", touchMove, { passive: false });
+      tile.addEventListener("touchend", touchEnd, { passive: true });
+
       board.append(tile);
     }
   }
 
-  // Reset turn counter
   turns = 0;
   document.getElementById("turns").innerText = turns;
-
-  // Hide congratulations message on reset
   document.getElementById("congratsMessage").style.display = "none";
 }
 
@@ -72,7 +70,6 @@ function dragDrop() {
 function dragEnd() {
   if (!otherTile || !currTile) return;
 
-  // Prevent swapping if not adjacent
   let currCoords = currTile.id.split("-");
   let r = parseInt(currCoords[0]);
   let c = parseInt(currCoords[1]);
@@ -90,7 +87,6 @@ function dragEnd() {
 
   if (!isAdjacent) return;
 
-  // Swap images
   let currImg = currTile.src;
   let otherImg = otherTile.src;
 
@@ -100,7 +96,53 @@ function dragEnd() {
   turns += 1;
   document.getElementById("turns").innerText = turns;
 
-  // Check if solved after each move
+  checkWin();
+}
+
+// NEW: Mobile touch functions
+function touchStart(e) {
+  currTile = this;
+}
+
+function touchMove(e) {
+  e.preventDefault();
+  let touch = e.touches[0];
+  let element = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (element && element.tagName === "IMG" && element !== currTile) {
+    otherTile = element;
+  }
+}
+
+function touchEnd(e) {
+  e.preventDefault();
+  if (!otherTile || !currTile) return;
+
+  let currCoords = currTile.id.split("-");
+  let r = parseInt(currCoords[0]);
+  let c = parseInt(currCoords[1]);
+
+  let otherCoords = otherTile.id.split("-");
+  let r2 = parseInt(otherCoords[0]);
+  let c2 = parseInt(otherCoords[1]);
+
+  let moveLeft = r == r2 && c2 == c - 1;
+  let moveRight = r == r2 && c2 == c + 1;
+  let moveUp = c == c2 && r2 == r - 1;
+  let moveDown = c == c2 && r2 == r + 1;
+
+  let isAdjacent = moveLeft || moveRight || moveUp || moveDown;
+
+  if (!isAdjacent) return;
+
+  let currImg = currTile.src;
+  let otherImg = otherTile.src;
+
+  currTile.src = otherImg;
+  otherTile.src = currImg;
+
+  turns += 1;
+  document.getElementById("turns").innerText = turns;
+
   checkWin();
 }
 
