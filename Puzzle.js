@@ -1,11 +1,9 @@
 var rows = 3;
 var columns = 3;
 
-var firstTile = null;
-var secondTile = null;
+var selectedTile = null;
 var turns = 0;
 var imgOrder;
-var isWaitingForSecond = false;
 
 window.onload = function() {
   createBoard();
@@ -25,9 +23,9 @@ function createBoard() {
       tile.src = imgOrder.shift() + ".png";
       tile.draggable = false;
       
-      // Click/tap to select and swap ANY two tiles
-      tile.addEventListener("click", tileClick);
-      tile.addEventListener("touchstart", tileTouch, { passive: true });
+      // Use BOTH click and touch events
+      tile.addEventListener("click", handleTile);
+      tile.addEventListener("touchstart", handleTileTouch, { passive: true });
 
       board.append(tile);
     }
@@ -36,70 +34,62 @@ function createBoard() {
   turns = 0;
   document.getElementById("turns").innerText = turns;
   document.getElementById("congratsMessage").style.display = "none";
-  firstTile = null;
-  secondTile = null;
-  isWaitingForSecond = false;
+  selectedTile = null;
 }
 
-function resetGame() {
-  createBoard();
-}
-
-function tileClick(e) {
-  handleTileClick(this);
-}
-
-function tileTouch(e) {
+function handleTile(e) {
   e.preventDefault();
-  handleTileClick(this);
+  processTile(this);
 }
 
-function handleTileClick(tile) {
-  // If no tile is selected yet, select this one
-  if (!isWaitingForSecond) {
-    // Deselect previous selection
-    if (firstTile) {
-      firstTile.style.outline = "none";
-      firstTile.style.border = "1px solid rgb(255, 205, 144)";
-    }
+function handleTileTouch(e) {
+  e.preventDefault();
+  processTile(this);
+}
+
+function processTile(tile) {
+  // If no tile is selected, select this one
+  if (selectedTile === null) {
+    // Clear any previous selection first
+    clearHighlight();
     
-    firstTile = tile;
-    firstTile.style.outline = "3px solid yellow";
-    firstTile.style.outlineOffset = "-3px";
-    isWaitingForSecond = true;
+    // Select this tile
+    selectedTile = tile;
+    tile.style.outline = "3px solid yellow";
+    tile.style.outlineOffset = "-3px";
     return;
   }
 
-  // Second tile selected - swap them!
-  secondTile = tile;
-  
-  // Don't swap with itself
-  if (firstTile === secondTile) {
-    firstTile.style.outline = "none";
-    firstTile.style.border = "1px solid rgb(255, 205, 144)";
-    firstTile = null;
-    isWaitingForSecond = false;
+  // If clicking the SAME tile, deselect it
+  if (selectedTile === tile) {
+    clearHighlight();
+    selectedTile = null;
     return;
   }
 
-  // Swap the images
-  let firstImg = firstTile.src;
-  let secondImg = secondTile.src;
+  // If clicking a DIFFERENT tile, swap them
+  let firstImg = selectedTile.src;
+  let secondImg = tile.src;
   
-  firstTile.src = secondImg;
-  secondTile.src = firstImg;
+  selectedTile.src = secondImg;
+  tile.src = firstImg;
 
-  // Reset selection
-  firstTile.style.outline = "none";
-  firstTile.style.border = "1px solid rgb(255, 205, 144)";
-  firstTile = null;
-  secondTile = null;
-  isWaitingForSecond = false;
+  // Clear highlight
+  clearHighlight();
+  selectedTile = null;
 
+  // Count the turn
   turns += 1;
   document.getElementById("turns").innerText = turns;
 
   checkWin();
+}
+
+function clearHighlight() {
+  if (selectedTile) {
+    selectedTile.style.outline = "none";
+    selectedTile.style.border = "1px solid rgb(255, 205, 144)";
+  }
 }
 
 function checkWin() {
@@ -125,4 +115,9 @@ function checkWin() {
   } else {
     document.getElementById("congratsMessage").style.display = "none";
   }
+}
+
+function resetGame() {
+  selectedTile = null;
+  createBoard();
 }
