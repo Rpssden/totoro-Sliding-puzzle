@@ -1,10 +1,10 @@
 var rows = 3;
 var columns = 3;
 
-var currTile;
-var otherTile;
 var turns = 0;
 var imgOrder;
+var emptyRow = 2;
+var emptyCol = 2;
 
 window.onload = function() {
   createBoard();
@@ -16,25 +16,19 @@ function createBoard() {
   board.innerHTML = "";
 
   imgOrder = ["4", "2", "8", "5", "1", "6", "7", "9", "3"];
+  emptyRow = 2;
+  emptyCol = 2;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < columns; c++) {
       let tile = document.createElement("img");
       tile.id = r + "-" + c;
-      tile.src = imgOrder.shift() + ".png";
-
-      // Desktop drag events
-      tile.addEventListener("dragstart", dragStart);
-      tile.addEventListener("dragover", dragOver);
-      tile.addEventListener("dragenter", dragEnter);
-      tile.addEventListener("dragleave", dragLeave);
-      tile.addEventListener("drop", dragDrop);
-      tile.addEventListener("dragend", dragEnd);
-
-      // Mobile touch events (NEW)
-      tile.addEventListener("touchstart", touchStart, { passive: true });
-      tile.addEventListener("touchmove", touchMove, { passive: false });
-      tile.addEventListener("touchend", touchEnd, { passive: true });
+      let imgSrc = imgOrder.shift();
+      tile.src = imgSrc + ".png";
+      
+      // Remove all drag events - use click/tap instead
+      tile.addEventListener("click", tileClick);
+      tile.addEventListener("touchstart", tileTouch, { passive: true });
 
       board.append(tile);
     }
@@ -49,96 +43,48 @@ function resetGame() {
   createBoard();
 }
 
-function dragStart() {
-  currTile = this;
+function tileClick(e) {
+  handleTileClick(this);
 }
 
-function dragOver(e) {
+function tileTouch(e) {
+  // Prevent any default touch behavior
   e.preventDefault();
+  handleTileClick(this);
 }
 
-function dragEnter(e) {
-  e.preventDefault();
-}
+function handleTileClick(tile) {
+  let coords = tile.id.split("-");
+  let row = parseInt(coords[0]);
+  let col = parseInt(coords[1]);
 
-function dragLeave() {}
-
-function dragDrop() {
-  otherTile = this;
-}
-
-function dragEnd() {
-  if (!otherTile || !currTile) return;
-
-  let currCoords = currTile.id.split("-");
-  let r = parseInt(currCoords[0]);
-  let c = parseInt(currCoords[1]);
-
-  let otherCoords = otherTile.id.split("-");
-  let r2 = parseInt(otherCoords[0]);
-  let c2 = parseInt(otherCoords[1]);
-
-  let moveLeft = r == r2 && c2 == c - 1;
-  let moveRight = r == r2 && c2 == c + 1;
-  let moveUp = c == c2 && r2 == r - 1;
-  let moveDown = c == c2 && r2 == r + 1;
-
-  let isAdjacent = moveLeft || moveRight || moveUp || moveDown;
+  // Check if this tile is adjacent to the empty space
+  let isAdjacent = false;
+  
+  // Check up
+  if (row === emptyRow - 1 && col === emptyCol) isAdjacent = true;
+  // Check down
+  if (row === emptyRow + 1 && col === emptyCol) isAdjacent = true;
+  // Check left
+  if (row === emptyRow && col === emptyCol - 1) isAdjacent = true;
+  // Check right
+  if (row === emptyRow && col === emptyCol + 1) isAdjacent = true;
 
   if (!isAdjacent) return;
 
-  let currImg = currTile.src;
-  let otherImg = otherTile.src;
+  // Find the empty tile
+  let emptyTile = document.getElementById(emptyRow + "-" + emptyCol);
+  
+  // Swap the images
+  let tileImg = tile.src;
+  let emptyImg = emptyTile.src;
+  
+  tile.src = emptyImg;
+  emptyTile.src = tileImg;
 
-  currTile.src = otherImg;
-  otherTile.src = currImg;
-
-  turns += 1;
-  document.getElementById("turns").innerText = turns;
-
-  checkWin();
-}
-
-// NEW: Mobile touch functions
-function touchStart(e) {
-  currTile = this;
-}
-
-function touchMove(e) {
-  e.preventDefault();
-  let touch = e.touches[0];
-  let element = document.elementFromPoint(touch.clientX, touch.clientY);
-  if (element && element.tagName === "IMG" && element !== currTile) {
-    otherTile = element;
-  }
-}
-
-function touchEnd(e) {
-  e.preventDefault();
-  if (!otherTile || !currTile) return;
-
-  let currCoords = currTile.id.split("-");
-  let r = parseInt(currCoords[0]);
-  let c = parseInt(currCoords[1]);
-
-  let otherCoords = otherTile.id.split("-");
-  let r2 = parseInt(otherCoords[0]);
-  let c2 = parseInt(otherCoords[1]);
-
-  let moveLeft = r == r2 && c2 == c - 1;
-  let moveRight = r == r2 && c2 == c + 1;
-  let moveUp = c == c2 && r2 == r - 1;
-  let moveDown = c == c2 && r2 == r + 1;
-
-  let isAdjacent = moveLeft || moveRight || moveUp || moveDown;
-
-  if (!isAdjacent) return;
-
-  let currImg = currTile.src;
-  let otherImg = otherTile.src;
-
-  currTile.src = otherImg;
-  otherTile.src = currImg;
+  // Update empty position
+  emptyRow = row;
+  emptyCol = col;
 
   turns += 1;
   document.getElementById("turns").innerText = turns;
