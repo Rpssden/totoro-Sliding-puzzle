@@ -1,10 +1,11 @@
 var rows = 3;
 var columns = 3;
 
+var firstTile = null;
+var secondTile = null;
 var turns = 0;
 var imgOrder;
-var emptyRow = 2;
-var emptyCol = 2;
+var isWaitingForSecond = false;
 
 window.onload = function() {
   createBoard();
@@ -16,17 +17,15 @@ function createBoard() {
   board.innerHTML = "";
 
   imgOrder = ["4", "2", "8", "5", "1", "6", "7", "9", "3"];
-  emptyRow = 2;
-  emptyCol = 2;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < columns; c++) {
       let tile = document.createElement("img");
       tile.id = r + "-" + c;
-      let imgSrc = imgOrder.shift();
-      tile.src = imgSrc + ".png";
+      tile.src = imgOrder.shift() + ".png";
+      tile.draggable = false;
       
-      // Remove all drag events - use click/tap instead
+      // Click/tap to select and swap ANY two tiles
       tile.addEventListener("click", tileClick);
       tile.addEventListener("touchstart", tileTouch, { passive: true });
 
@@ -37,6 +36,9 @@ function createBoard() {
   turns = 0;
   document.getElementById("turns").innerText = turns;
   document.getElementById("congratsMessage").style.display = "none";
+  firstTile = null;
+  secondTile = null;
+  isWaitingForSecond = false;
 }
 
 function resetGame() {
@@ -48,43 +50,51 @@ function tileClick(e) {
 }
 
 function tileTouch(e) {
-  // Prevent any default touch behavior
   e.preventDefault();
   handleTileClick(this);
 }
 
 function handleTileClick(tile) {
-  let coords = tile.id.split("-");
-  let row = parseInt(coords[0]);
-  let col = parseInt(coords[1]);
+  // If no tile is selected yet, select this one
+  if (!isWaitingForSecond) {
+    // Deselect previous selection
+    if (firstTile) {
+      firstTile.style.outline = "none";
+      firstTile.style.border = "1px solid rgb(255, 205, 144)";
+    }
+    
+    firstTile = tile;
+    firstTile.style.outline = "3px solid yellow";
+    firstTile.style.outlineOffset = "-3px";
+    isWaitingForSecond = true;
+    return;
+  }
 
-  // Check if this tile is adjacent to the empty space
-  let isAdjacent = false;
+  // Second tile selected - swap them!
+  secondTile = tile;
   
-  // Check up
-  if (row === emptyRow - 1 && col === emptyCol) isAdjacent = true;
-  // Check down
-  if (row === emptyRow + 1 && col === emptyCol) isAdjacent = true;
-  // Check left
-  if (row === emptyRow && col === emptyCol - 1) isAdjacent = true;
-  // Check right
-  if (row === emptyRow && col === emptyCol + 1) isAdjacent = true;
+  // Don't swap with itself
+  if (firstTile === secondTile) {
+    firstTile.style.outline = "none";
+    firstTile.style.border = "1px solid rgb(255, 205, 144)";
+    firstTile = null;
+    isWaitingForSecond = false;
+    return;
+  }
 
-  if (!isAdjacent) return;
-
-  // Find the empty tile
-  let emptyTile = document.getElementById(emptyRow + "-" + emptyCol);
-  
   // Swap the images
-  let tileImg = tile.src;
-  let emptyImg = emptyTile.src;
+  let firstImg = firstTile.src;
+  let secondImg = secondTile.src;
   
-  tile.src = emptyImg;
-  emptyTile.src = tileImg;
+  firstTile.src = secondImg;
+  secondTile.src = firstImg;
 
-  // Update empty position
-  emptyRow = row;
-  emptyCol = col;
+  // Reset selection
+  firstTile.style.outline = "none";
+  firstTile.style.border = "1px solid rgb(255, 205, 144)";
+  firstTile = null;
+  secondTile = null;
+  isWaitingForSecond = false;
 
   turns += 1;
   document.getElementById("turns").innerText = turns;
